@@ -175,10 +175,10 @@ void TestPaginateResult() {
     auto document = *iterator_range.begin();
     ASSERT_EQUAL(document.id, 2);
 
-    document = *(iterator_range.begin() + 1);
+    document = *(next(iterator_range.begin()));
     ASSERT_EQUAL(document.id, 4);
 
-    iterator_range = *(pages.begin() + 1);
+    iterator_range = *(next(pages.begin()));
     document = *iterator_range.begin();
     ASSERT_EQUAL(document.id, 5);
 }
