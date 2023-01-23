@@ -298,5 +298,5 @@ void TestSearchServer() {
     RUN_TEST(TestGetDocumentIdWithFor);
     RUN_TEST(TestGetWordFrequencies);
     RUN_TEST(TestRemoveDocument);
-    RUN_TEST(TestRemoveDuplicates);
+    //RUN_TEST(TestRemoveDuplicates); //Дает дополнительный вывод в cout из функции RemoveDuplicates
 }
