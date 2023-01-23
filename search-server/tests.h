@@ -1,3 +1,4 @@
+#pragma once
 #include "out_operator.h"
 
 #include <iostream>
@@ -74,6 +75,14 @@ void TestPaginateResult();
 
 //Добавление запросов в очередь
 void TestAddFindRequest();
+
+void TestGetDocumentIdWithFor();
+
+void TestGetWordFrequencies();
+
+void TestRemoveDocument();
+
+void TestRemoveDuplicates();
 
 // --------- Окончание модульных тестов поисковой системы -----------
 

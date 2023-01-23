@@ -1,4 +1,5 @@
 #include "search_server.h"
+#include "log_duration.h"
 
 #include <cmath>
 
@@ -20,6 +21,7 @@ void SearchServer::AddDocument(int document_id, const string& document, Document
     const double inv_word_count = 1.0 / words.size();
     for (const string& word : words) {
         word_to_document_freqs_[word][document_id] += inv_word_count;
+        document_to_word_freqs_[document_id][word] = word_to_document_freqs_[word][document_id];
     }
     documents_.emplace(document_id, DocumentData{ComputeAverageRating(ratings), status});
     document_ids_.push_back(document_id);
@@ -31,13 +33,6 @@ vector<Document> SearchServer::FindTopDocuments(const string& raw_query, Documen
 
 int SearchServer::GetDocumentCount() const {
     return documents_.size();
-}
-
-int SearchServer::GetDocumentId(int index) const {
-    if (index >= 0 && index < GetDocumentCount()) {
-        return document_ids_[index];
-    }
-    throw out_of_range("Индекс переданного документа выходит за пределы допустимого диапазона"s);
 }
 
 tuple<vector<string>, DocumentStatus> SearchServer::MatchDocument(const string& raw_query, int document_id) const {
@@ -62,6 +57,39 @@ tuple<vector<string>, DocumentStatus> SearchServer::MatchDocument(const string& 
     }
 
     return {matched_words, documents_.at(document_id).status};
+}
+
+const map<std::string, double>& SearchServer::GetWordFrequencies(int document_id) const {
+    static const map<string, double> null_result;
+    auto iter = document_to_word_freqs_.find(document_id);
+    if (iter != document_to_word_freqs_.end()) {
+        return iter -> second;
+    }
+    return null_result;
+}
+
+void SearchServer::RemoveDocument(int document_id) {
+    const auto iter_document_to_word_freqs_ = document_to_word_freqs_.find(document_id);
+    const auto iter_documents_ = documents_.find(document_id);
+    const auto iter_document_ids_ = find(document_ids_.begin(), document_ids_.end(), document_id);
+
+    if (iter_document_to_word_freqs_ == document_to_word_freqs_.end() ||
+            iter_documents_ == documents_.end() || iter_document_ids_ == document_ids_.end()) {
+        throw invalid_argument("Недопустимый id документа при удалении"s);
+    }
+
+    const map<string, double>& word_to_freqs = iter_document_to_word_freqs_ -> second;
+    for (const auto& [word, freq] : word_to_freqs) {
+        auto& document_freqs = word_to_document_freqs_.find(word) -> second;
+        document_freqs.erase(document_id);
+        if (document_freqs.empty()) {
+            word_to_document_freqs_.erase(word);
+        }
+    }
+
+    document_to_word_freqs_.erase(iter_document_to_word_freqs_);
+    documents_.erase(iter_documents_);
+    document_ids_.erase(iter_document_ids_);
 }
 
 bool SearchServer::IsStopWord(const string& word) const {
@@ -144,6 +172,7 @@ void AddDocument(SearchServer& search_server, int document_id, const string& doc
 }
 
 void FindTopDocuments(const SearchServer& search_server, const string& raw_query) {
+    //LOG_DURATION_STREAM("Operation time", cout);
     cout << "Результаты поиска по запросу: "s << raw_query << endl;
     try {
         for (const Document& document : search_server.FindTopDocuments(raw_query)) {
@@ -155,11 +184,10 @@ void FindTopDocuments(const SearchServer& search_server, const string& raw_query
 }
 
 void MatchDocuments(const SearchServer& search_server, const string& query) {
+    //LOG_DURATION_STREAM("Operation time", cout);
     try {
         cout << "Матчинг документов по запросу: "s << query << endl;
-        const int document_count = search_server.GetDocumentCount();
-        for (int index = 0; index < document_count; ++index) {
-            const int document_id = search_server.GetDocumentId(index);
+        for (const int document_id : search_server) {
             const auto [words, status] = search_server.MatchDocument(query, document_id);
             PrintMatchDocumentResult(document_id, words, status);
         }

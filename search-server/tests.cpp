@@ -2,6 +2,7 @@
 #include "search_server.h"
 #include "paginator.h"
 #include "request_queue.h"
+#include "remove_duplicates.h"
 
 using namespace std;
 
@@ -212,6 +213,75 @@ void TestAddFindRequest() {
     ASSERT_EQUAL(request_queue.GetNoResultRequests(), 1437);
 }
 
+void TestGetDocumentIdWithFor() {
+    SearchServer search_server("and in at"s);
+    search_server.AddDocument(1, "curly cat curly tail"s, DocumentStatus::ACTUAL, {7, 2, 7});
+    search_server.AddDocument(2, "curly dog and fancy collar"s, DocumentStatus::ACTUAL, {1, 2, 3});
+    search_server.AddDocument(3, "big cat fancy collar "s, DocumentStatus::ACTUAL, {1, 2, 8});
+    search_server.AddDocument(4, "big dog sparrow Eugene"s, DocumentStatus::ACTUAL, {1, 3, 2});
+    search_server.AddDocument(5, "big dog sparrow Vasiliy"s, DocumentStatus::ACTUAL, {1, 1, 1});
+
+    vector<int> ids;
+    for (const int document_id : search_server) {
+        ids.push_back(document_id);
+    }
+
+    vector<int> true_ids = {1, 2, 3, 4, 5};
+
+    ASSERT_EQUAL(ids, true_ids);
+}
+
+void TestGetWordFrequencies() {
+    SearchServer search_server("and in at"s);
+    search_server.AddDocument(1, "curly cat curly tail"s, DocumentStatus::ACTUAL, {7, 2, 7});
+
+    map<string, double> word_frequencies = search_server.GetWordFrequencies(1);
+
+    map<string, double> true_word_frequencies = {{"cat"s, 0.25}, {"curly"s, 0.5}, {"tail"s, 0.25}};
+
+    ASSERT_EQUAL_HINT(word_frequencies, true_word_frequencies, "{cat: 0.25, curly: 0.5, tail: 0.25}"s);
+}
+
+void TestRemoveDocument() {
+    SearchServer search_server("and in at"s);
+    search_server.AddDocument(1, "curly cat curly tail"s, DocumentStatus::ACTUAL, {7, 2, 7});
+    search_server.AddDocument(2, "big dog and fancy collar"s, DocumentStatus::ACTUAL, {1, 2, 3});
+    search_server.AddDocument(3, "big dog fancy collar "s, DocumentStatus::ACTUAL, {1, 2, 8});
+    search_server.AddDocument(4, "big dog sparrow Eugene"s, DocumentStatus::ACTUAL, {1, 3, 2});
+    search_server.AddDocument(5, "big dog sparrow Vasiliy"s, DocumentStatus::ACTUAL, {1, 1, 1});
+
+    search_server.RemoveDocument(1);
+
+    vector<int> ids;
+    for (const int document_id : search_server) {
+        ids.push_back(document_id);
+    }
+    vector<int> true_ids = {2, 3, 4, 5};
+    ASSERT_EQUAL(ids, true_ids);
+
+    const auto found_docs = search_server.FindTopDocuments("cat"s);
+    ASSERT_EQUAL(found_docs.size(), 0u);
+}
+
+void TestRemoveDuplicates() {
+    SearchServer search_server("and in at"s);
+    search_server.AddDocument(1, "curly cat curly tail"s, DocumentStatus::ACTUAL, {7, 2, 7});
+    search_server.AddDocument(2, "big dog and fancy collar"s, DocumentStatus::ACTUAL, {1, 2, 3});
+    search_server.AddDocument(3, "big dog fancy collar collar collar"s, DocumentStatus::ACTUAL, {1, 2, 8});
+    search_server.AddDocument(4, "big dog sparrow Eugene"s, DocumentStatus::ACTUAL, {1, 3, 2});
+    search_server.AddDocument(5, "big dog sparrow Vasiliy"s, DocumentStatus::ACTUAL, {1, 1, 1});
+
+    RemoveDuplicates(search_server);
+
+    ASSERT_EQUAL(search_server.GetDocumentCount(), 4);
+
+    const auto found_docs = search_server.FindTopDocuments("dog"s);
+    ASSERT_EQUAL(found_docs.size(), 3u);
+    ASSERT_EQUAL(found_docs[0].id, 2);
+    ASSERT_EQUAL(found_docs[1].id, 4);
+    ASSERT_EQUAL(found_docs[2].id, 5);
+}
+
 // Функция TestSearchServer является точкой входа для запуска тестов
 void TestSearchServer() {
     RUN_TEST(TestExcludeStopWordsFromAddedDocumentContent);
@@ -225,4 +295,8 @@ void TestSearchServer() {
     RUN_TEST(TestCalculateRelevance);
     RUN_TEST(TestPaginateResult);
     RUN_TEST(TestAddFindRequest);
+    RUN_TEST(TestGetDocumentIdWithFor);
+    RUN_TEST(TestGetWordFrequencies);
+    RUN_TEST(TestRemoveDocument);
+    RUN_TEST(TestRemoveDuplicates);
 }
