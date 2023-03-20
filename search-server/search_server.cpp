@@ -26,8 +26,21 @@ void SearchServer::AddDocument(int document_id, string_view document, DocumentSt
     document_ids_.insert(document_id);
 }
 
+vector<Document> SearchServer::FindTopDocuments(const execution::parallel_policy&, string_view raw_query,
+                                                DocumentStatus input_status) const {
+    return FindTopDocuments(execution::par, raw_query,
+                            [input_status](int document_id, DocumentStatus status, int rating) { return status == input_status; });
+}
+
+vector<Document> SearchServer::FindTopDocuments(const execution::sequenced_policy&, string_view raw_query,
+                                                DocumentStatus input_status) const {
+    return FindTopDocuments(execution::seq, raw_query,
+                            [input_status](int document_id, DocumentStatus status, int rating) { return status == input_status; });
+}
+
 vector<Document> SearchServer::FindTopDocuments(string_view raw_query, DocumentStatus input_status) const {
-    return FindTopDocuments(raw_query, [input_status](int document_id, DocumentStatus status, int rating) { return status == input_status; });
+    return FindTopDocuments(execution::seq, raw_query,
+                            [input_status](int document_id, DocumentStatus status, int rating) { return status == input_status; });
 }
 
 int SearchServer::GetDocumentCount() const {
