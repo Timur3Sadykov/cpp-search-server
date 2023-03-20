@@ -1,17 +1,18 @@
 #include "remove_duplicates.h"
 
 #include <string>
+#include <string_view>
 #include <vector>
 #include <set>
 
 using namespace std;
 
 void RemoveDuplicates(SearchServer& search_server) {
-    set<set<string>> comparison_set;
+    set<set<string_view>> comparison_set;
     vector<int> duplicate_documents_ids;
 
     for (const int document_id : search_server) {
-        set<string> words;
+        set<string_view> words;
         for (const auto& [word, freq] : search_server.GetWordFrequencies(document_id)) {
             words.insert(word);
         }

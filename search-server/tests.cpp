@@ -76,7 +76,7 @@ void TestMatchDocumentsAndQuery() {
     server.AddDocument(doc_id, "cat in the city"s, DocumentStatus::ACTUAL, {1, 2, 3});
 
     const auto matched_words = get<0>(server.MatchDocument("cat city"s, doc_id));
-    vector<string> expected_result = {"cat"s, "city"s};
+    vector<string_view> expected_result = {"cat"s, "city"s};
     ASSERT_EQUAL_HINT(matched_words, expected_result, "Two words expected"s);
 
     const auto matched_words_with_minus = get<0>(server.MatchDocument("cat -city"s, doc_id));
@@ -235,9 +235,9 @@ void TestGetWordFrequencies() {
     SearchServer search_server("and in at"s);
     search_server.AddDocument(1, "curly cat curly tail"s, DocumentStatus::ACTUAL, {7, 2, 7});
 
-    map<string, double> word_frequencies = search_server.GetWordFrequencies(1);
+    map<string_view, double> word_frequencies = search_server.GetWordFrequencies(1);
 
-    map<string, double> true_word_frequencies = {{"cat"s, 0.25}, {"curly"s, 0.5}, {"tail"s, 0.25}};
+    map<string_view, double> true_word_frequencies = {{"cat"s, 0.25}, {"curly"s, 0.5}, {"tail"s, 0.25}};
 
     ASSERT_EQUAL_HINT(word_frequencies, true_word_frequencies, "{cat: 0.25, curly: 0.5, tail: 0.25}"s);
 }
@@ -298,5 +298,5 @@ void TestSearchServer() {
     RUN_TEST(TestGetDocumentIdWithFor);
     RUN_TEST(TestGetWordFrequencies);
     RUN_TEST(TestRemoveDocument);
-    //RUN_TEST(TestRemoveDuplicates); //Дает дополнительный вывод в cout из функции RemoveDuplicates
+    RUN_TEST(TestRemoveDuplicates); //Дает дополнительный вывод в cout из функции RemoveDuplicates
 }

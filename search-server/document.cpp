@@ -19,12 +19,12 @@ ostream& operator<<(ostream& out, const Document& document) {
 }
 
 
-void PrintMatchDocumentResult(int document_id, const vector<string>& words, DocumentStatus status) {
+void PrintMatchDocumentResult(int document_id, const vector<string_view>& words, DocumentStatus status) {
     cout << "{ "s
          << "document_id = "s << document_id << ", "s
          << "status = "s << static_cast<int>(status) << ", "s
          << "words ="s;
-    for (const string& word : words) {
+    for (string_view word : words) {
         cout << ' ' << word;
     }
     cout << "}"s << endl;
