@@ -26,18 +26,6 @@ void SearchServer::AddDocument(int document_id, string_view document, DocumentSt
     document_ids_.insert(document_id);
 }
 
-vector<Document> SearchServer::FindTopDocuments(const execution::parallel_policy&, string_view raw_query,
-                                                DocumentStatus input_status) const {
-    return FindTopDocuments(execution::par, raw_query,
-                            [input_status](int document_id, DocumentStatus status, int rating) { return status == input_status; });
-}
-
-vector<Document> SearchServer::FindTopDocuments(const execution::sequenced_policy&, string_view raw_query,
-                                                DocumentStatus input_status) const {
-    return FindTopDocuments(execution::seq, raw_query,
-                            [input_status](int document_id, DocumentStatus status, int rating) { return status == input_status; });
-}
-
 vector<Document> SearchServer::FindTopDocuments(string_view raw_query, DocumentStatus input_status) const {
     return FindTopDocuments(execution::seq, raw_query,
                             [input_status](int document_id, DocumentStatus status, int rating) { return status == input_status; });
@@ -208,10 +196,7 @@ int SearchServer::ComputeAverageRating(const vector<int>& ratings) {
     if (ratings.empty()) {
         return 0;
     }
-    int rating_sum = 0;
-    for (const int rating : ratings) {
-        rating_sum += rating;
-    }
+    int rating_sum = accumulate(ratings.begin(), ratings.end(), 0);
     return rating_sum / static_cast<int>(ratings.size());
 }
 
